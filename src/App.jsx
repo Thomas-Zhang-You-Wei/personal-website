@@ -1,21 +1,21 @@
 import { useState } from 'react'
-import { Cpu, FlaskConical, Network, Users, Trophy, Satellite, Microscope, Rocket, Bot, FolderOpen } from 'lucide-react'
+import { Circuitry, Flask, Network, Handshake, Trophy, Broadcast, Dna, Rocket, Robot, FolderOpen } from '@phosphor-icons/react'
 import profilePhoto from './assets/profile.png'
 
 const TABS = ['About', 'Projects', 'Achievements', 'Experiments']
 
 const skills = [
-  { icon: Cpu,          label: 'Raspberry Pi Development',     desc: 'Embedded systems, IoT & hardware prototyping' },
-  { icon: FlaskConical, label: 'Aseptic Microbial Transfer',   desc: 'Sterile lab techniques & cultivation protocols' },
-  { icon: Network,      label: 'Remote Network Configuration', desc: 'Infrastructure setup & management' },
-  { icon: Users,        label: 'Business Development',         desc: 'Strategic partnerships & collaborative innovation' },
+  { icon: Circuitry, label: 'Raspberry Pi Development',     desc: 'Embedded systems, IoT & hardware prototyping' },
+  { icon: Flask,     label: 'Aseptic Microbial Transfer',   desc: 'Sterile lab techniques & cultivation protocols' },
+  { icon: Network,   label: 'Remote Network Configuration', desc: 'Infrastructure setup & management' },
+  { icon: Handshake, label: 'Business Development',         desc: 'Strategic partnerships & collaborative innovation' },
 ]
 
 const interests = [
-  { icon: Satellite,  label: 'Satellite Communication' },
-  { icon: Microscope, label: 'Bio-manufacturing' },
-  { icon: Rocket,     label: 'Space Materials' },
-  { icon: Bot,        label: 'AI-driven Science' },
+  { icon: Broadcast, label: 'Satellite Communication' },
+  { icon: Dna,       label: 'Bio-manufacturing' },
+  { icon: Rocket,    label: 'Space Materials' },
+  { icon: Robot,     label: 'AI-driven Science' },
 ]
 
 const projects = [
@@ -68,7 +68,7 @@ function AboutTab() {
                          hover:bg-[#faf8f4] transition-colors duration-200 group">
               <div className="w-9 h-9 border border-[#d6cfc4] flex items-center justify-center
                               text-[#9a3412] group-hover:border-[#9a3412] transition-colors flex-shrink-0">
-                <Icon size={16} strokeWidth={1.5} />
+                <Icon size={20} weight="duotone" />
               </div>
               <div>
                 <p className="text-sm font-medium text-[#1c1917] mb-0.5">{label}</p>
@@ -89,7 +89,7 @@ function AboutTab() {
                          hover:bg-[#faf8f4] transition-colors duration-200 group">
               <div className="w-10 h-10 border border-[#d6cfc4] flex items-center justify-center
                               text-[#9a3412] mx-auto mb-3 group-hover:border-[#9a3412] transition-colors">
-                <Icon size={18} strokeWidth={1.5} />
+                <Icon size={22} weight="duotone" />
               </div>
               <p className="text-xs text-[#78716c] leading-snug">{label}</p>
             </div>
@@ -117,7 +117,7 @@ function ProjectsTab() {
             <p className="text-sm text-[#78716c] leading-relaxed">{p.desc}</p>
             <p className="text-xs text-[#c4bdb5] italic mt-3">Details coming soon…</p>
           </div>
-          <FolderOpen size={16} strokeWidth={1.5} className="text-[#c4bdb5] group-hover:text-[#9a3412] transition-colors flex-shrink-0 mt-1" />
+          <FolderOpen size={20} weight="duotone" className="text-[#c4bdb5] group-hover:text-[#9a3412] transition-colors flex-shrink-0 mt-1" />
         </div>
       ))}
     </div>
@@ -131,7 +131,7 @@ function AchievementsTab() {
       <div className="bg-white border border-[#d6cfc4] p-8 flex items-start gap-7 sm:flex-col">
         <div className="flex-shrink-0 text-center">
           <div className="w-16 h-16 border border-[#d6cfc4] flex items-center justify-center text-[#9a3412]">
-            <Trophy size={28} strokeWidth={1.5} />
+            <Trophy size={28} weight="duotone" />
           </div>
           <p className="text-[10px] font-bold tracking-widest uppercase text-[#9a3412] mt-2">1st Place</p>
         </div>
