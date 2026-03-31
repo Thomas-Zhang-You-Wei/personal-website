@@ -8,7 +8,7 @@ const T = {
   en: {
     tabs: ['About', 'Projects', 'Achievements', 'Experiments'],
     hero: {
-      subtitle: "Master's Student · Researcher · Innovator",
+      subtitle: "Master's Student · Researcher",
       institution: 'Dept. of Electrical Engineering, National Taiwan University',
     },
     about: {
@@ -17,14 +17,14 @@ const T = {
       bio: [
         <>I am a first-year master's student in the Department of Electrical Engineering at National Taiwan University. My research focuses on <b>ratchetless satellite handover</b>, simulated using the <b>OpenAirInterface (OAI)</b> platform.</>,
         <>I intern at <b>TWBIO</b>, where I configure the Pioreactor system and develop plug-in modules to optimise yeast cultivation for astaxanthin yield and production efficiency.</>,
-        <>I also work on the commercialisation of <b>space enzyme–protein scaffolding</b>, exploring the enzymatic degradation of PET in space environments to produce feedstock for 3D printing.</>,
+        <>I also work on the commercialisation of <b>space enzyme–protein scaffolding</b>, researching the enzymatic degradation of PET in space environments to produce feedstock for 3D printing.</>,
       ],
     },
     skills: [
       { label: 'Raspberry Pi Development',       desc: 'Embedded systems, IoT, and hardware prototyping' },
       { label: 'Aseptic Microbial Techniques',   desc: 'Sterile handling and microbial cultivation protocols' },
       { label: 'Remote Network Configuration',   desc: 'Network infrastructure setup and management' },
-      { label: 'Business Development',           desc: 'Partnership building and cross-domain collaboration' },
+      { label: 'Business Development',           desc: 'Partnership development and cross-domain collaboration' },
     ],
     interests: [
       'Satellite Communication',
@@ -66,7 +66,7 @@ const T = {
   zh: {
     tabs: ['關於我', '專案', '獲獎', '實驗'],
     hero: {
-      subtitle: '碩士研究生 · 研究員 · 創新者',
+      subtitle: '碩士研究生 · 研究人員',
       institution: '國立臺灣大學電機工程學系研究所',
     },
     about: {
@@ -75,14 +75,14 @@ const T = {
       bio: [
         <>我目前就讀國立臺灣大學電機工程學系碩士班一年級，研究方向為<b>衛星無棘輪換手（Ratchetless Handover）</b>，使用 <b>OpenAirInterface（OAI）</b>平台進行系統模擬。</>,
         <>同時在 <b>TWBIO</b> 擔任實習生，負責 Pioreactor 生物反應器的系統配置與外掛模組開發，以優化酵母菌培養條件、提升蝦紅素產量與製程效率。</>,
-        <>此外，我也參與<b>太空酵素蛋白質支架</b>的商業化推進工作，探索在太空環境中以酵素降解 PET 材料，將其轉化為可供 3D 列印使用的原料。</>,
+        <>此外，我也參與<b>太空酵素蛋白質支架</b>的商業化推進工作，研究在太空環境中以酵素降解 PET 材料，將其轉化為可供 3D 列印使用的原料。</>,
       ],
     },
     skills: [
       { label: 'Raspberry Pi 開發',   desc: '嵌入式系統、IoT 與硬體原型開發' },
       { label: '無菌微生物操作',       desc: '無菌技術與微生物培養流程' },
       { label: '遠端網路配置與管理',   desc: '網路基礎架構建置與維運' },
-      { label: '商業合作與開發',       desc: '跨域夥伴關係建立與推進' },
+      { label: '商業合作開發',         desc: '跨域夥伴關係建立與推進' },
     ],
     interests: [
       '衛星通訊系統',
