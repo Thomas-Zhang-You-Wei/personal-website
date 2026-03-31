@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Circuitry, Flask, Network, Handshake, Trophy, Broadcast, Dna, Rocket, Robot, FolderOpen } from '@phosphor-icons/react'
-import profilePhoto from './assets/profile.png'
+import profilePhoto from './assets/profile.jpg'
 import runspaceImg from './assets/runspace.jpg'
 
 /* ── Translations ──────────────────────────────────────────── */
