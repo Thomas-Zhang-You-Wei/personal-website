@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Circuitry, Flask, Network, Handshake, Trophy, Broadcast, Dna, Rocket, Robot, FolderOpen } from '@phosphor-icons/react'
 import profilePhoto from './assets/profile.png'
+import runspaceImg from './assets/runspace.jpg'
 
 const TABS = ['About', 'Projects', 'Achievements', 'Experiments']
 
@@ -24,12 +25,12 @@ const projects = [
   { title: 'Space Enzyme–Protein Scaffold', tag: 'BizDev',      desc: 'Business development for PET biodegradation in space using enzyme-protein scaffolding.' },
 ]
 
-/* ── Divider ── */
-const Rule = () => <hr className="border-none border-t border-[#d6cfc4] my-0" style={{borderTopWidth:'1px',borderTopStyle:'solid',borderTopColor:'#d6cfc4'}} />
+const Rule = () => (
+  <div style={{ height: '1px', background: '#d6cfc4' }} />
+)
 
-/* ── Tag badge ── */
 const Tag = ({ children }) => (
-  <span className="text-[11px] font-medium tracking-widest uppercase px-2 py-0.5 border border-[#d6cfc4] text-[#78716c]">
+  <span className="text-[11px] font-medium tracking-widest uppercase px-2 py-0.5 border border-[#d6cfc4] text-[#78716c] whitespace-nowrap">
     {children}
   </span>
 )
@@ -37,9 +38,8 @@ const Tag = ({ children }) => (
 /* ── About ──────────────────────────────────── */
 function AboutTab() {
   return (
-    <div className="animate-tab space-y-12">
-      {/* Bio */}
-      <div className="border border-[#d6cfc4] bg-white p-8 space-y-4 text-[15px] leading-[1.8] text-[#44403c]">
+    <div className="animate-tab space-y-10">
+      <div className="border border-[#d6cfc4] bg-white p-6 sm:p-8 space-y-4 text-[15px] leading-[1.8] text-[#44403c]">
         <p>
           I am a first-year master's student at the Department of Electrical Engineering,
           National Taiwan University. My current research focuses on{' '}
@@ -58,13 +58,12 @@ function AboutTab() {
         </p>
       </div>
 
-      {/* Skills */}
       <div>
-        <p className="text-[11px] font-medium tracking-[0.2em] uppercase text-[#78716c] mb-5">Skills</p>
-        <div className="grid grid-cols-2 gap-px bg-[#d6cfc4] border border-[#d6cfc4] stagger sm:grid-cols-1">
+        <p className="text-[11px] font-medium tracking-[0.2em] uppercase text-[#78716c] mb-4">Skills</p>
+        <div className="grid grid-cols-1 gap-px bg-[#d6cfc4] border border-[#d6cfc4] stagger sm:grid-cols-2">
           {skills.map(({ icon: Icon, label, desc }) => (
             <div key={label}
-              className="animate-fade-up bg-white p-6 flex items-start gap-4
+              className="animate-fade-up bg-white p-5 flex items-start gap-4
                          hover:bg-[#faf8f4] transition-colors duration-200 group">
               <div className="w-9 h-9 border border-[#d6cfc4] flex items-center justify-center
                               text-[#9a3412] group-hover:border-[#9a3412] transition-colors flex-shrink-0">
@@ -79,13 +78,12 @@ function AboutTab() {
         </div>
       </div>
 
-      {/* Interests */}
       <div>
-        <p className="text-[11px] font-medium tracking-[0.2em] uppercase text-[#78716c] mb-5">Interests</p>
-        <div className="grid grid-cols-4 gap-px bg-[#d6cfc4] border border-[#d6cfc4] stagger sm:grid-cols-2">
+        <p className="text-[11px] font-medium tracking-[0.2em] uppercase text-[#78716c] mb-4">Interests</p>
+        <div className="grid grid-cols-2 gap-px bg-[#d6cfc4] border border-[#d6cfc4] stagger sm:grid-cols-4">
           {interests.map(({ icon: Icon, label }) => (
             <div key={label}
-              className="animate-fade-up bg-white p-6 text-center
+              className="animate-fade-up bg-white p-5 text-center
                          hover:bg-[#faf8f4] transition-colors duration-200 group">
               <div className="w-10 h-10 border border-[#d6cfc4] flex items-center justify-center
                               text-[#9a3412] mx-auto mb-3 group-hover:border-[#9a3412] transition-colors">
@@ -105,19 +103,19 @@ function ProjectsTab() {
   return (
     <div className="animate-tab border border-[#d6cfc4] divide-y divide-[#d6cfc4]">
       {projects.map((p, i) => (
-        <div key={p.title} className="bg-white p-7 flex items-start gap-6 hover:bg-[#faf8f4] transition-colors group">
+        <div key={p.title} className="bg-white p-5 sm:p-7 flex items-start gap-4 sm:gap-6 hover:bg-[#faf8f4] transition-colors group">
           <span className="text-xs text-[#a8a29e] font-mono pt-0.5 flex-shrink-0 w-5">
             {String(i + 1).padStart(2, '0')}
           </span>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-2 flex-wrap">
+            <div className="flex items-start gap-2 mb-2 flex-wrap">
               <h3 className="text-[15px] font-semibold text-[#1c1917]" style={{fontFamily:'var(--font-serif)'}}>{p.title}</h3>
               <Tag>{p.tag}</Tag>
             </div>
             <p className="text-sm text-[#78716c] leading-relaxed">{p.desc}</p>
             <p className="text-xs text-[#c4bdb5] italic mt-3">Details coming soon…</p>
           </div>
-          <FolderOpen size={20} weight="duotone" className="text-[#c4bdb5] group-hover:text-[#9a3412] transition-colors flex-shrink-0 mt-1" />
+          <FolderOpen size={18} weight="duotone" className="text-[#c4bdb5] group-hover:text-[#9a3412] transition-colors flex-shrink-0 mt-1" />
         </div>
       ))}
     </div>
@@ -128,22 +126,64 @@ function ProjectsTab() {
 function AchievementsTab() {
   return (
     <div className="animate-tab space-y-4">
-      <div className="bg-white border border-[#d6cfc4] p-8 flex items-start gap-7 sm:flex-col">
-        <div className="flex-shrink-0 text-center">
-          <div className="w-16 h-16 border border-[#d6cfc4] flex items-center justify-center text-[#9a3412]">
-            <Trophy size={28} weight="duotone" />
+      <div className="bg-white border border-[#d6cfc4] overflow-hidden">
+
+        {/* Photo banner */}
+        <div className="relative">
+          <img
+            src={runspaceImg}
+            alt="RunSpace Competition 2025"
+            className="w-full object-cover"
+            style={{ maxHeight: '280px', objectPosition: 'center' }}
+          />
+          {/* Gold overlay badge */}
+          <div className="absolute top-4 left-4 bg-[#1c1917]/80 backdrop-blur-sm px-3 py-1.5 flex items-center gap-2">
+            <Trophy size={14} weight="fill" className="text-[#d4a017]" />
+            <span className="text-[11px] font-bold tracking-[0.2em] uppercase text-[#d4a017]">1st Place</span>
           </div>
-          <p className="text-[10px] font-bold tracking-widest uppercase text-[#9a3412] mt-2">1st Place</p>
         </div>
-        <div>
-          <h3 className="text-xl text-[#1c1917] mb-1" style={{fontFamily:'var(--font-serif)'}}>RunSpace Competition 2025</h3>
-          <p className="text-sm text-[#78716c] mb-3">Implementation &amp; Enterprise Innovation Division</p>
+
+        {/* Content */}
+        <div className="p-6 sm:p-8">
+          {/* Big trophy + title row */}
+          <div className="flex items-start gap-5 mb-5">
+            <div className="flex-shrink-0 relative">
+              {/* Glow ring */}
+              <div className="absolute inset-0 rounded-none opacity-30"
+                   style={{ boxShadow: '0 0 20px 4px #d4a017' }} />
+              <div className="w-16 h-16 sm:w-20 sm:h-20 border-2 border-[#d4a017] flex items-center justify-center bg-[#fdf8f0] relative">
+                <Trophy size={32} weight="duotone" className="text-[#d4a017] sm:hidden" />
+                <Trophy size={40} weight="duotone" className="text-[#d4a017] hidden sm:block" />
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold tracking-[0.25em] uppercase text-[#9a3412] mb-1">
+                RunSpace Competition 2025
+              </p>
+              <h3 className="text-2xl sm:text-3xl text-[#1c1917] leading-tight"
+                  style={{fontFamily:'var(--font-serif)', fontWeight:700}}>
+                1st Place
+              </h3>
+              <p className="text-sm text-[#78716c] mt-1">
+                Implementation &amp; Enterprise Innovation Division
+              </p>
+            </div>
+          </div>
+
           <Rule />
-          <p className="text-sm text-[#78716c] mt-3">
-            Team — <span className="font-medium text-[#1c1917]">Asta-sense</span>
-          </p>
+
+          <div className="mt-4 flex items-center justify-between flex-wrap gap-2">
+            <p className="text-sm text-[#78716c]">
+              Team — <span className="font-semibold text-[#1c1917]">Asta-sense</span>
+            </p>
+            <span className="text-[11px] font-medium tracking-widest uppercase px-2 py-0.5
+                             border border-[#d4a017] text-[#d4a017]">
+              Champion
+            </span>
+          </div>
         </div>
       </div>
+
       <div className="border border-dashed border-[#d6cfc4] p-7 text-center">
         <p className="text-sm text-[#c4bdb5] italic">More achievements coming soon…</p>
       </div>
@@ -156,17 +196,16 @@ function ExperimentsTab() {
   return (
     <div className="animate-tab space-y-6">
       <div className="bg-white border border-[#d6cfc4] overflow-hidden">
-        {/* Video — no crop */}
-        <div className="bg-black p-4">
+        <div className="bg-black p-3 sm:p-4">
           <video
             className="w-full block"
-            style={{ maxHeight: '480px', objectFit: 'contain' }}
+            style={{ maxHeight: '460px', objectFit: 'contain' }}
             src={`${import.meta.env.BASE_URL}clinostat.mp4`}
             autoPlay loop muted playsInline
           />
         </div>
-        <div className="p-8">
-          <div className="flex items-center gap-3 mb-4">
+        <div className="p-6 sm:p-8">
+          <div className="flex items-start gap-3 mb-4 flex-wrap">
             <h3 className="text-xl text-[#1c1917]" style={{fontFamily:'var(--font-serif)'}}>Dual-Axis Clinostat</h3>
             <Tag>Microgravity Simulation</Tag>
           </div>
@@ -211,27 +250,27 @@ export default function App() {
       <div className="max-w-[820px] mx-auto border-x border-[#d6cfc4] min-h-screen flex flex-col bg-[#f7f3ed]">
 
         {/* ── Hero ── */}
-        <header className="animate-hero px-10 pt-14 pb-10 border-b border-[#d6cfc4] sm:px-6">
-          <div className="flex items-center gap-8 sm:flex-col sm:text-center">
+        <header className="animate-hero px-4 pt-10 pb-8 border-b border-[#d6cfc4] sm:px-10 sm:pt-14 sm:pb-10">
+          <div className="flex flex-col items-center text-center gap-5 sm:flex-row sm:items-center sm:text-left sm:gap-8">
             <img
               src={profilePhoto}
               alt="Thomas Chang"
-              className="w-24 h-24 rounded-full object-cover object-top flex-shrink-0
-                         border-2 border-[#d6cfc4]"
+              className="w-20 h-20 rounded-full object-cover object-top flex-shrink-0
+                         border-2 border-[#d6cfc4] sm:w-24 sm:h-24"
             />
             <div className="flex-1 min-w-0">
-              <h1 className="text-[36px] leading-tight text-[#1c1917] mb-1"
+              <h1 className="text-[30px] leading-tight text-[#1c1917] mb-1 sm:text-[36px]"
                   style={{fontFamily:'var(--font-serif)', fontWeight:600}}>
                 Thomas Chang
-                <span className="block text-[22px] font-normal italic text-[#78716c]">張祐瑋</span>
+                <span className="block text-[18px] font-normal italic text-[#78716c] sm:text-[22px]">張祐瑋</span>
               </h1>
-              <p className="text-[11px] tracking-[0.2em] uppercase text-[#78716c] mt-3 mb-4">
+              <p className="text-[10px] tracking-[0.2em] uppercase text-[#78716c] mt-2 mb-3 sm:text-[11px] sm:mt-3 sm:mb-4">
                 Master's Student · Researcher · Innovator
               </p>
-              <p className="text-xs text-[#a8a29e] mb-5">
+              <p className="text-xs text-[#a8a29e] mb-4 sm:mb-5">
                 Dept. of Electrical Engineering, National Taiwan University
               </p>
-              <div className="flex gap-2 flex-wrap sm:justify-center">
+              <div className="flex gap-2 flex-wrap justify-center sm:justify-start">
                 <a href="https://github.com/Thomas-Zhang-You-Wei" target="_blank" rel="noreferrer"
                    className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium tracking-wide
                               border border-[#1c1917] text-[#1c1917] hover:bg-[#1c1917] hover:text-white
@@ -256,14 +295,15 @@ export default function App() {
         </header>
 
         {/* ── Tab Nav ── */}
-        <nav className="sticky top-0 z-10 border-b border-[#d6cfc4] bg-[#f7f3ed]/90 backdrop-blur-sm px-10 sm:px-6">
-          <div className="flex">
+        <nav className="sticky top-0 z-10 border-b border-[#d6cfc4] bg-[#f7f3ed]/90 backdrop-blur-sm px-2 sm:px-10 overflow-x-auto">
+          <div className="flex min-w-max">
             {TABS.map((tab) => (
               <button
                 key={tab}
                 onClick={() => handleTabChange(tab)}
-                className={`relative px-4 py-4 text-xs font-medium tracking-[0.15em] uppercase
-                            transition-colors duration-150 cursor-pointer
+                className={`relative px-3 py-4 text-[11px] font-medium tracking-[0.12em] uppercase
+                            transition-colors duration-150 cursor-pointer whitespace-nowrap
+                            sm:px-4 sm:text-xs sm:tracking-[0.15em]
                             ${activeTab === tab ? 'text-[#1c1917]' : 'text-[#a8a29e] hover:text-[#78716c]'}`}
               >
                 {tab}
@@ -276,7 +316,7 @@ export default function App() {
         </nav>
 
         {/* ── Content ── */}
-        <main className="flex-1 px-10 py-10 sm:px-6" key={animKey}>
+        <main className="flex-1 px-4 py-8 sm:px-10 sm:py-10" key={animKey}>
           {activeTab === 'About'        && <AboutTab />}
           {activeTab === 'Projects'     && <ProjectsTab />}
           {activeTab === 'Achievements' && <AchievementsTab />}
@@ -284,7 +324,7 @@ export default function App() {
         </main>
 
         {/* ── Footer ── */}
-        <footer className="px-10 py-6 border-t border-[#d6cfc4] text-center sm:px-6">
+        <footer className="px-4 py-6 border-t border-[#d6cfc4] text-center sm:px-10">
           <p className="text-xs text-[#a8a29e] italic" style={{fontFamily:'var(--font-serif)'}}>
             "Fake it, until you make it."
           </p>
