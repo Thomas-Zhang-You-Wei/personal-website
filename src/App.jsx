@@ -93,8 +93,8 @@ const T = {
     projects: {
       placeholder: '詳細內容待補充…',
       items: [
-        { title: '衛星無棘輪換手',      tag: '研究',    desc: '以 OpenAirInterface (OAI) 平台模擬衛星無縫換手機制。' },
-        { title: 'Pioreactor 外掛開發', tag: '工程',    desc: '開發自動化模組，優化酵母菌培養條件，提升蝦紅素產量。' },
+        { title: '衛星NTN免隨機換手',      tag: '研究',    desc: '以 OpenAirInterface (OAI) 平台模擬衛星無縫換手機制。' },
+        { title: 'Pioreactor 開源專案實作', tag: '工程',    desc: '開發自動化模組，優化酵母菌培養條件，提升蝦紅素產量。' },
         { title: '太空酵素蛋白質支架',  tag: '商業開發', desc: '研究在太空環境中以酵素降解 PET，推動相關材料的商業應用。' },
       ],
     },
