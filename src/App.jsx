@@ -73,7 +73,7 @@ const T = {
       sectionSkills: '技能',
       sectionInterests: '興趣',
       bio: [
-        <>我目前就讀國立臺灣大學電機工程學系碩士班一年級，研究方向為<b>衛星無棘輪換手（Ratchetless Handover）</b>，使用 <b>OpenAirInterface（OAI）</b>平台進行系統模擬。</>,
+        <>我目前就讀國立臺灣大學電機工程學系碩士班一年級，研究方向為<b>衛星ＮＴＮ免隨機換手（Rachless Handover）</b>，使用 <b>OpenAirInterface（OAI）</b>平台進行系統模擬。</>,
         <>同時在 <b>TWBIO</b> 擔任實習生，負責 Pioreactor 生物反應器的系統配置與外掛模組開發，以優化酵母菌培養條件、提升蝦紅素產量與製程效率。</>,
         <>此外，我也參與<b>太空酵素蛋白質支架</b>的商業化推進工作，研究在太空環境中以酵素降解 PET 材料，將其轉化為可供 3D 列印使用的原料。</>,
       ],
@@ -93,7 +93,7 @@ const T = {
     projects: {
       placeholder: '詳細內容待補充…',
       items: [
-        { title: '衛星NTN免隨機換手',      tag: '研究',    desc: '以 OpenAirInterface (OAI) 平台模擬衛星無縫換手機制。' },
+        { title: '衛星NTN免隨機換手 Rachless Handover',      tag: '研究',    desc: '以 OpenAirInterface (OAI) 平台模擬衛星無縫換手機制。' },
         { title: 'Pioreactor 開源專案實作', tag: '工程',    desc: '開發自動化模組，優化酵母菌培養條件，提升蝦紅素產量。' },
         { title: '太空酵素蛋白質支架',  tag: '商業開發', desc: '研究在太空環境中以酵素降解 PET，推動相關材料的商業應用。' },
       ],
@@ -251,7 +251,7 @@ function AchievementsTab({ lang }) {
           <Rule />
           <div className="mt-4 flex items-center justify-between flex-wrap gap-2">
             <p className="text-sm text-[#78716c]">
-              {t.team} — <span className="font-semibold text-[#1c1917]">{t.teamName}</span>
+              {t.team} ： <span className="font-semibold text-[#1c1917]">{t.teamName}</span>
             </p>
             <span className="text-[11px] font-medium tracking-widest uppercase px-2 py-0.5 border border-[#d4a017] text-[#d4a017]">
               {t.champion}
