@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { Circuitry, Flask, Network, Handshake, Trophy, Broadcast, Dna, Rocket, Robot, FolderOpen } from '@phosphor-icons/react'
+import { useState, useEffect, useRef } from 'react'
+import { Circuitry, Flask, Network, Handshake, Trophy, Broadcast, Dna, Rocket, Robot, FolderOpen, X, SignIn, UserPlus, SignOut, ChatText } from '@phosphor-icons/react'
 import profilePhoto from './assets/profile.jpg'
 import runspaceImg from './assets/runspace.jpg'
 
-/* ── Translations ──────────────────────────────────────────── */
+/* ── Translations ──────────────────────────────────────────────── */
 const T = {
   en: {
-    tabs: ['About', 'Projects', 'Achievements', 'Experiments'],
+    tabs: ['About', 'Projects', 'Achievements', 'Experiments', 'Guestbook'],
     hero: {
       subtitle: "Master's Student · Researcher",
       institution: 'Dept. of Electrical Engineering, National Taiwan University',
@@ -58,13 +58,35 @@ const T = {
       ],
       placeholder: 'More experiments coming soon…',
     },
+    guestbook: {
+      inputPlaceholder: 'Leave a message for Thomas…',
+      submit:      'Post',
+      loginPrompt: 'Please log in to leave a message.',
+      empty:       'No messages yet — be the first!',
+      deleteBtn:   'Delete',
+      charCount:   (n) => `${n} / 1000`,
+    },
+    auth: {
+      loginTitle:    'Login',
+      registerTitle: 'Register',
+      usernameLabel: 'Username',
+      passwordLabel: 'Password',
+      avatarLabel:   'Profile Picture',
+      optional:      'optional',
+      noAccount:     "Don't have an account?",
+      hasAccount:    'Already have an account?',
+      loading:       'Processing…',
+      logout:        'Logout',
+      loginBtn:      'Login',
+      registerBtn:   'Register',
+    },
     footer: '"Fake it, until you make it."',
     emailSubject: 'Hello Thomas',
     emailBody: 'Hi Thomas,\n\n',
   },
 
   zh: {
-    tabs: ['關於我', '專案', '獲獎', '實驗'],
+    tabs: ['關於我', '專案', '獲獎', '實驗', '留言板'],
     hero: {
       subtitle: '碩士研究生 · 研究人員',
       institution: '國立臺灣大學電機工程學系研究所',
@@ -116,13 +138,35 @@ const T = {
       ],
       placeholder: '更多實驗內容持續更新…',
     },
+    guestbook: {
+      inputPlaceholder: '留下你的訊息…',
+      submit:      '送出',
+      loginPrompt: '請先登入才能留言。',
+      empty:       '目前沒有留言，快來留下第一則！',
+      deleteBtn:   '刪除',
+      charCount:   (n) => `${n} / 1000`,
+    },
+    auth: {
+      loginTitle:    '登入',
+      registerTitle: '註冊',
+      usernameLabel: '帳號',
+      passwordLabel: '密碼',
+      avatarLabel:   '頭貼',
+      optional:      '選填',
+      noAccount:     '還沒有帳號？',
+      hasAccount:    '已有帳號？',
+      loading:       '處理中…',
+      logout:        '登出',
+      loginBtn:      '登入',
+      registerBtn:   '註冊',
+    },
     footer: '"Fake it, until you make it."',
     emailSubject: '您好，Thomas',
     emailBody: 'Thomas 您好，\n\n',
   },
 }
 
-/* ── Shared components ─────────────────────────────────────── */
+/* ── Shared components ─────────────────────────────────────────── */
 const Rule = () => <div style={{ height: '1px', background: '#d6cfc4' }} />
 
 const Tag = ({ children }) => (
@@ -131,10 +175,154 @@ const Tag = ({ children }) => (
   </span>
 )
 
+function Avatar({ user, size = 10 }) {
+  const cls = `w-${size} h-${size} rounded-full object-cover border border-[#d6cfc4] flex-shrink-0`
+  if (user?.avatar_filename) {
+    return <img src={`/uploads/${user.avatar_filename}`} alt={user.username} className={cls} />
+  }
+  return (
+    <div className={`${cls} bg-[#e8e2da] flex items-center justify-center`}>
+      <span className="text-sm font-medium text-[#78716c] select-none">
+        {(user?.username?.[0] ?? '?').toUpperCase()}
+      </span>
+    </div>
+  )
+}
+
 const iconList = [Circuitry, Flask, Network, Handshake]
 const interestIcons = [Broadcast, Dna, Rocket, Robot]
 
-/* ── About ──────────────────────────────────────────────────── */
+/* ── Auth Modal ────────────────────────────────────────────────── */
+function AuthModal({ mode, setMode, onClose, onSuccess, lang }) {
+  const t = T[lang].auth
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [avatarFile, setAvatarFile] = useState(null)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      if (mode === 'login') {
+        const r = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+          credentials: 'include',
+        })
+        const data = await r.json()
+        if (!r.ok) { setError(data.detail || t.loginTitle + ' failed'); return }
+        onSuccess(data)
+      } else {
+        const fd = new FormData()
+        fd.append('username', username)
+        fd.append('password', password)
+        if (avatarFile) fd.append('avatar', avatarFile)
+        const r = await fetch('/api/register', { method: 'POST', body: fd, credentials: 'include' })
+        const data = await r.json()
+        if (!r.ok) { setError(data.detail || t.registerTitle + ' failed'); return }
+        // Auto-login after register
+        const lr = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+          credentials: 'include',
+        })
+        const ldata = await lr.json()
+        if (!lr.ok) { setError(ldata.detail || 'Login failed'); return }
+        onSuccess(ldata)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1c1917]/60 backdrop-blur-sm"
+      onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bg-[#f7f3ed] border border-[#d6cfc4] w-full max-w-sm mx-4">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#d6cfc4]">
+          <h2 className="text-base font-semibold text-[#1c1917]" style={{ fontFamily: 'var(--font-serif)' }}>
+            {mode === 'login' ? t.loginTitle : t.registerTitle}
+          </h2>
+          <button onClick={onClose} className="text-[#a8a29e] hover:text-[#1c1917] transition-colors p-1">
+            <X size={16} />
+          </button>
+        </div>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="text-[11px] font-medium tracking-[0.18em] uppercase text-[#78716c] block mb-1.5">
+              {t.usernameLabel}
+            </label>
+            <input
+              type="text" value={username} onChange={e => setUsername(e.target.value)}
+              required minLength={3} maxLength={50} autoComplete="username"
+              className="w-full border border-[#d6cfc4] bg-white px-3 py-2 text-sm text-[#1c1917]
+                         focus:outline-none focus:border-[#9a3412] transition-colors"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] font-medium tracking-[0.18em] uppercase text-[#78716c] block mb-1.5">
+              {t.passwordLabel}
+            </label>
+            <input
+              type="password" value={password} onChange={e => setPassword(e.target.value)}
+              required minLength={6} maxLength={100} autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              className="w-full border border-[#d6cfc4] bg-white px-3 py-2 text-sm text-[#1c1917]
+                         focus:outline-none focus:border-[#9a3412] transition-colors"
+            />
+          </div>
+          {mode === 'register' && (
+            <div>
+              <label className="text-[11px] font-medium tracking-[0.18em] uppercase text-[#78716c] block mb-1.5">
+                {t.avatarLabel} <span className="normal-case tracking-normal text-[#a8a29e]">({t.optional})</span>
+              </label>
+              <input
+                type="file" accept=".jpg,.jpeg,.png"
+                onChange={e => setAvatarFile(e.target.files[0] ?? null)}
+                className="w-full text-sm text-[#78716c]
+                           file:mr-3 file:py-1.5 file:px-3 file:border file:border-[#d6cfc4]
+                           file:text-xs file:text-[#78716c] file:bg-white file:cursor-pointer
+                           hover:file:bg-[#faf8f4] file:transition-colors"
+              />
+            </div>
+          )}
+          {error && (
+            <p className="text-xs text-[#9a3412] bg-[#9a3412]/5 border border-[#9a3412]/20 px-3 py-2">
+              {error}
+            </p>
+          )}
+          <button
+            type="submit" disabled={loading}
+            className="w-full py-2.5 text-xs font-medium tracking-widest uppercase
+                       border border-[#9a3412] text-[#9a3412]
+                       hover:bg-[#9a3412] hover:text-white transition-colors
+                       disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {loading ? t.loading : (mode === 'login' ? t.loginTitle : t.registerTitle)}
+          </button>
+          <p className="text-xs text-center text-[#a8a29e]">
+            {mode === 'login' ? t.noAccount : t.hasAccount}{' '}
+            <button
+              type="button"
+              onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }}
+              className="text-[#9a3412] hover:underline"
+            >
+              {mode === 'login' ? t.registerTitle : t.loginTitle}
+            </button>
+          </p>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+/* ── About ──────────────────────────────────────────────────────── */
 function AboutTab({ lang }) {
   const t = T[lang]
   return (
@@ -189,7 +377,7 @@ function AboutTab({ lang }) {
   )
 }
 
-/* ── Projects ───────────────────────────────────────────────── */
+/* ── Projects ───────────────────────────────────────────────────── */
 function ProjectsTab({ lang }) {
   const t = T[lang]
   return (
@@ -201,7 +389,7 @@ function ProjectsTab({ lang }) {
           </span>
           <div className="flex-1 min-w-0">
             <div className="flex items-start gap-2 mb-2 flex-wrap">
-              <h3 className="text-[15px] font-semibold text-[#1c1917]" style={{fontFamily:'var(--font-serif)'}}>{p.title}</h3>
+              <h3 className="text-[15px] font-semibold text-[#1c1917]" style={{ fontFamily: 'var(--font-serif)' }}>{p.title}</h3>
               <Tag>{p.tag}</Tag>
             </div>
             <p className="text-sm text-[#78716c] leading-relaxed">{p.desc}</p>
@@ -214,7 +402,7 @@ function ProjectsTab({ lang }) {
   )
 }
 
-/* ── Achievements ───────────────────────────────────────────── */
+/* ── Achievements ───────────────────────────────────────────────── */
 function AchievementsTab({ lang }) {
   const t = T[lang].achievements
   return (
@@ -222,7 +410,7 @@ function AchievementsTab({ lang }) {
       <div className="bg-white border border-[#d6cfc4] overflow-hidden">
         <div className="relative">
           <a href="https://www.linkedin.com/posts/runspace-innovation-challenge_spacecanary-biosensor-biomanufacturing-activity-7394222414127304705-WTf_?utm_source=share&utm_medium=member_desktop&rcm=ACoAAFaqx0AB_B-Y7q2tMhlFpFVOUg9tUVs4UfM"
-             target="_blank" rel="noreferrer" className="block">
+            target="_blank" rel="noreferrer" className="block">
             <img src={runspaceImg} alt={t.name}
               className="w-full object-cover hover:opacity-90 transition-opacity duration-200"
               style={{ maxHeight: '280px', objectPosition: 'center' }} />
@@ -244,7 +432,7 @@ function AchievementsTab({ lang }) {
             <div>
               <p className="text-[10px] font-bold tracking-[0.25em] uppercase text-[#9a3412] mb-1">{t.name}</p>
               <h3 className="text-2xl sm:text-3xl text-[#1c1917] leading-tight"
-                  style={{fontFamily:'var(--font-serif)', fontWeight:700}}>{t.rank}</h3>
+                style={{ fontFamily: 'var(--font-serif)', fontWeight: 700 }}>{t.rank}</h3>
               <p className="text-sm text-[#78716c] mt-1">{t.division}</p>
             </div>
           </div>
@@ -266,7 +454,7 @@ function AchievementsTab({ lang }) {
   )
 }
 
-/* ── Experiments ────────────────────────────────────────────── */
+/* ── Experiments ────────────────────────────────────────────────── */
 function ExperimentsTab({ lang }) {
   const t = T[lang].experiments
   return (
@@ -279,7 +467,7 @@ function ExperimentsTab({ lang }) {
         </div>
         <div className="p-6 sm:p-8">
           <div className="flex items-start gap-3 mb-4 flex-wrap">
-            <h3 className="text-xl text-[#1c1917]" style={{fontFamily:'var(--font-serif)'}}>{t.title}</h3>
+            <h3 className="text-xl text-[#1c1917]" style={{ fontFamily: 'var(--font-serif)' }}>{t.title}</h3>
             <Tag>{t.tag}</Tag>
           </div>
           <Rule />
@@ -295,17 +483,172 @@ function ExperimentsTab({ lang }) {
   )
 }
 
-/* ── Root ───────────────────────────────────────────────────── */
+/* ── Guestbook ──────────────────────────────────────────────────── */
+function GuestbookTab({ lang, user, openModal }) {
+  const t = T[lang].guestbook
+  const [messages, setMessages] = useState([])
+  const [content, setContent] = useState('')
+  const [posting, setPosting] = useState(false)
+  const textareaRef = useRef(null)
+
+  useEffect(() => {
+    fetch('/api/messages', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : [])
+      .then(setMessages)
+      .catch(() => setMessages([]))
+  }, [])
+
+  const postMessage = async () => {
+    if (!content.trim() || posting) return
+    setPosting(true)
+    try {
+      const r = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: content.trim() }),
+        credentials: 'include',
+      })
+      if (r.ok) {
+        const msg = await r.json()
+        setMessages(prev => [msg, ...prev])
+        setContent('')
+      }
+    } finally {
+      setPosting(false)
+    }
+  }
+
+  const deleteMessage = async (id) => {
+    const r = await fetch(`/api/messages/${id}`, { method: 'DELETE', credentials: 'include' })
+    if (r.ok) setMessages(prev => prev.filter(m => m.id !== id))
+  }
+
+  const handleKey = (e) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) postMessage()
+  }
+
+  return (
+    <div className="animate-tab space-y-4">
+      {/* Input box */}
+      {user ? (
+        <div className="bg-white border border-[#d6cfc4] p-5">
+          <div className="flex gap-3 mb-3">
+            <Avatar user={user} size={9} />
+            <textarea
+              ref={textareaRef}
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              onKeyDown={handleKey}
+              placeholder={t.inputPlaceholder}
+              maxLength={1000}
+              rows={3}
+              className="flex-1 border border-[#d6cfc4] bg-[#faf8f4] px-3 py-2 text-sm text-[#44403c]
+                         leading-relaxed resize-none focus:outline-none focus:border-[#9a3412]
+                         transition-colors placeholder:text-[#c4bdb5]"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-[#c4bdb5]">{t.charCount(content.length)}</span>
+            <button
+              onClick={postMessage}
+              disabled={posting || !content.trim()}
+              className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium tracking-widest uppercase
+                         border border-[#9a3412] text-[#9a3412]
+                         hover:bg-[#9a3412] hover:text-white transition-colors
+                         disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <ChatText size={13} weight="duotone" />
+              {t.submit}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white border border-[#d6cfc4] p-6 text-center space-y-3">
+          <p className="text-sm text-[#78716c]">{t.loginPrompt}</p>
+          <div className="flex gap-2 justify-center">
+            <button
+              onClick={() => openModal('login')}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium tracking-wide
+                         border border-[#1c1917] text-[#1c1917] hover:bg-[#1c1917] hover:text-white transition-colors"
+            >
+              <SignIn size={13} />
+              {T[lang].auth.loginTitle}
+            </button>
+            <button
+              onClick={() => openModal('register')}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium tracking-wide
+                         border border-[#9a3412] text-[#9a3412] hover:bg-[#9a3412] hover:text-white transition-colors"
+            >
+              <UserPlus size={13} />
+              {T[lang].auth.registerTitle}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Messages */}
+      <div className="border border-[#d6cfc4] divide-y divide-[#d6cfc4]">
+        {messages.length === 0 ? (
+          <div className="bg-white p-10 text-center">
+            <p className="text-sm text-[#c4bdb5] italic">{t.empty}</p>
+          </div>
+        ) : messages.map(msg => (
+          <div key={msg.id}
+            className="bg-white p-5 flex gap-4 hover:bg-[#faf8f4] transition-colors group">
+            {/* Left: avatar */}
+            <div className="flex-shrink-0 pt-0.5">
+              <Avatar user={msg.author} size={10} />
+            </div>
+            {/* Right: content */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                <span className="text-sm font-medium text-[#1c1917]">{msg.author.username}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-[#c4bdb5]">
+                    {new Date(msg.created_at).toLocaleString()}
+                  </span>
+                  {user?.id === msg.user_id && (
+                    <button
+                      onClick={() => deleteMessage(msg.id)}
+                      className="text-xs text-[#c4bdb5] hover:text-[#9a3412] transition-colors
+                                 opacity-0 group-hover:opacity-100"
+                    >
+                      {t.deleteBtn}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <p className="text-sm text-[#44403c] leading-relaxed break-words">{msg.content}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ── Root ───────────────────────────────────────────────────────── */
 export default function App() {
   const [lang, setLang] = useState('en')
   const [activeTab, setActiveTab] = useState(0)
   const [animKey, setAnimKey] = useState(0)
+  const [user, setUser] = useState(null)
+  const [showModal, setShowModal] = useState(false)
+  const [modalMode, setModalMode] = useState('login')
   const t = T[lang]
+
+  // Check if already logged in via cookie on mount
+  useEffect(() => {
+    fetch('/api/me', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(u => u && setUser(u))
+      .catch(() => {})
+  }, [])
 
   const handleTabChange = (i) => {
     if (i === activeTab) return
     setActiveTab(i)
-    setAnimKey((k) => k + 1)
+    setAnimKey(k => k + 1)
   }
 
   const toggleLang = () => {
@@ -313,23 +656,80 @@ export default function App() {
     setAnimKey(k => k + 1)
   }
 
+  const openModal = (mode) => {
+    setModalMode(mode)
+    setShowModal(true)
+  }
+
+  const handleAuthSuccess = (userData) => {
+    setUser(userData)
+    setShowModal(false)
+  }
+
+  const handleLogout = async () => {
+    await fetch('/api/logout', { method: 'POST', credentials: 'include' })
+    setUser(null)
+  }
+
   const emailHref = `mailto:aaathomas920411@gmail.com?subject=${encodeURIComponent(t.emailSubject)}&body=${encodeURIComponent(t.emailBody)}`
 
   return (
-    <div className="min-h-screen bg-[#f7f3ed]" style={{fontFamily:'var(--font-sans)'}}>
+    <div className="min-h-screen bg-[#f7f3ed]" style={{ fontFamily: 'var(--font-sans)' }}>
       <div className="max-w-[820px] mx-auto border-x border-[#d6cfc4] min-h-screen flex flex-col bg-[#f7f3ed]">
 
         {/* ── Hero ── */}
         <header className="animate-hero relative px-4 pt-10 pb-8 border-b border-[#d6cfc4] sm:px-10 sm:pt-14 sm:pb-10">
 
-          {/* Language toggle — top right */}
-          <button onClick={toggleLang}
-            className="absolute top-4 right-4 text-[11px] font-medium tracking-widest uppercase
-                       px-3 py-1.5 border border-[#d6cfc4] text-[#78716c]
-                       hover:border-[#9a3412] hover:text-[#9a3412] transition-colors duration-200
-                       sm:top-6 sm:right-8">
-            {lang === 'en' ? '中文' : 'EN'}
-          </button>
+          {/* Top-right controls */}
+          <div className="absolute top-4 right-4 flex items-center gap-2 sm:top-6 sm:right-8">
+            {user ? (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 px-2 py-1 border border-[#d6cfc4] bg-white">
+                  <Avatar user={user} size={5} />
+                  <span className="text-[11px] text-[#78716c] max-w-[80px] truncate">{user.username}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  title={t.auth.logout}
+                  className="flex items-center gap-1 text-[11px] font-medium tracking-widest uppercase
+                             px-2.5 py-1.5 border border-[#d6cfc4] text-[#78716c]
+                             hover:border-[#9a3412] hover:text-[#9a3412] transition-colors duration-200"
+                >
+                  <SignOut size={12} />
+                  {t.auth.logout}
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => openModal('login')}
+                  className="flex items-center gap-1 text-[11px] font-medium tracking-widest uppercase
+                             px-2.5 py-1.5 border border-[#d6cfc4] text-[#78716c]
+                             hover:border-[#1c1917] hover:text-[#1c1917] transition-colors duration-200"
+                >
+                  <SignIn size={12} />
+                  {t.auth.loginBtn}
+                </button>
+                <button
+                  onClick={() => openModal('register')}
+                  className="flex items-center gap-1 text-[11px] font-medium tracking-widest uppercase
+                             px-2.5 py-1.5 border border-[#9a3412] text-[#9a3412]
+                             hover:bg-[#9a3412] hover:text-white transition-colors duration-200"
+                >
+                  <UserPlus size={12} />
+                  {t.auth.registerBtn}
+                </button>
+              </div>
+            )}
+            <button
+              onClick={toggleLang}
+              className="text-[11px] font-medium tracking-widest uppercase
+                         px-3 py-1.5 border border-[#d6cfc4] text-[#78716c]
+                         hover:border-[#9a3412] hover:text-[#9a3412] transition-colors duration-200"
+            >
+              {lang === 'en' ? '中文' : 'EN'}
+            </button>
+          </div>
 
           <div className="flex flex-col items-center text-center gap-5 sm:flex-row sm:items-center sm:text-left sm:gap-8">
             <img src={profilePhoto} alt="Thomas Chang"
@@ -337,7 +737,7 @@ export default function App() {
                          border-2 border-[#d6cfc4] sm:w-24 sm:h-24" />
             <div className="flex-1 min-w-0">
               <h1 className="text-[30px] leading-tight text-[#1c1917] mb-1 sm:text-[36px]"
-                  style={{fontFamily:'var(--font-serif)', fontWeight:600}}>
+                style={{ fontFamily: 'var(--font-serif)', fontWeight: 600 }}>
                 Thomas Chang
                 <span className="block text-[18px] font-normal italic text-[#78716c] sm:text-[22px]">張祐瑋</span>
               </h1>
@@ -347,27 +747,27 @@ export default function App() {
               <p className="text-xs text-[#a8a29e] mb-4 sm:mb-5">{t.hero.institution}</p>
               <div className="flex gap-2 flex-wrap justify-center sm:justify-start items-center">
                 <a href="https://github.com/Thomas-Zhang-You-Wei" target="_blank" rel="noreferrer"
-                   className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium tracking-wide
-                              border border-[#1c1917] text-[#1c1917] hover:bg-[#1c1917] hover:text-white transition-colors duration-200">
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium tracking-wide
+                             border border-[#1c1917] text-[#1c1917] hover:bg-[#1c1917] hover:text-white transition-colors duration-200">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
                   </svg>
                   GitHub
                 </a>
                 <a href="https://www.linkedin.com/in/yuwei-thomas/" target="_blank" rel="noreferrer"
-                   className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium tracking-wide
-                              border border-[#9a3412] text-[#9a3412] hover:bg-[#9a3412] hover:text-white transition-colors duration-200">
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium tracking-wide
+                             border border-[#9a3412] text-[#9a3412] hover:bg-[#9a3412] hover:text-white transition-colors duration-200">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
                   </svg>
                   LinkedIn
                 </a>
                 <a href={emailHref}
-                   className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium tracking-wide
-                              border border-[#78716c] text-[#78716c] hover:bg-[#78716c] hover:text-white transition-colors duration-200">
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium tracking-wide
+                             border border-[#78716c] text-[#78716c] hover:bg-[#78716c] hover:text-white transition-colors duration-200">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect width="20" height="16" x="2" y="4" rx="2"/>
-                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                    <rect width="20" height="16" x="2" y="4" rx="2" />
+                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
                   </svg>
                   Email
                 </a>
@@ -398,14 +798,26 @@ export default function App() {
           {activeTab === 1 && <ProjectsTab lang={lang} />}
           {activeTab === 2 && <AchievementsTab lang={lang} />}
           {activeTab === 3 && <ExperimentsTab lang={lang} />}
+          {activeTab === 4 && <GuestbookTab lang={lang} user={user} openModal={openModal} />}
         </main>
 
         {/* ── Footer ── */}
         <footer className="px-4 py-6 border-t border-[#d6cfc4] text-center sm:px-10">
-          <p className="text-xs text-[#a8a29e] italic" style={{fontFamily:'var(--font-serif)'}}>{t.footer}</p>
+          <p className="text-xs text-[#a8a29e] italic" style={{ fontFamily: 'var(--font-serif)' }}>{t.footer}</p>
         </footer>
 
       </div>
+
+      {/* ── Auth Modal ── */}
+      {showModal && (
+        <AuthModal
+          mode={modalMode}
+          setMode={setModalMode}
+          onClose={() => setShowModal(false)}
+          onSuccess={handleAuthSuccess}
+          lang={lang}
+        />
+      )}
     </div>
   )
 }

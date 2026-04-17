@@ -1,24 +1,55 @@
-# Logs
-logs
-*.log
+# ── Node / Frontend ───────────────────────────────────────────────────
+node_modules/
+dist/
+dist-ssr/
+*.local
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+logs/
+*.log
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
+# ── Editor ────────────────────────────────────────────────────────────
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# ── Python ────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+
+# ── 敏感資料：絕對不 commit ──────────────────────────────────────────
+# 環境變數（含 SECRET_KEY、資料庫密碼）
+.env
+.env.*
+!.env.example
+
+# 資料庫（含用戶帳號、密碼 hash、留言內容）
+*.db
+*.sqlite
+*.sqlite3
+
+# 用戶上傳的頭貼（個人資料）
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# 私鑰 / TLS 憑證
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+
+# ── Claude Code 內部目錄 ──────────────────────────────────────────────
+.claude/
