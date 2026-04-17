@@ -34,6 +34,9 @@ __pycache__/
 .env.*
 !.env.example
 
+# 自動產生的 secret key（等同於私鑰）
+backend/.secret_key
+
 # 資料庫（含用戶帳號、密碼 hash、留言內容）
 *.db
 *.sqlite

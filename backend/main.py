@@ -26,7 +26,21 @@ from starlette.middleware.base import BaseHTTPMiddleware
 load_dotenv()
 
 # ── Config ────────────────────────────────────────────────────────────
-SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_hex(32))
+def _load_secret_key() -> str:
+    key = os.getenv("SECRET_KEY")
+    if key:
+        return key
+    # No .env: generate once and persist to a local file so restarts don't
+    # invalidate every session.
+    key_file = Path(__file__).parent / ".secret_key"
+    if key_file.exists():
+        return key_file.read_text().strip()
+    key = secrets.token_hex(32)
+    key_file.write_text(key)
+    key_file.chmod(0o600)
+    return key
+
+SECRET_KEY = _load_secret_key()
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_HOURS = 2
 UPLOAD_DIR = Path(__file__).parent / "uploads"
@@ -261,8 +275,8 @@ async def register(
         raise HTTPException(400, "帳號長度需 3-50 字元")
     if not username.replace("_", "").isalnum():
         raise HTTPException(400, "帳號只能包含英文、數字、底線")
-    if not (6 <= len(password) <= 100):
-        raise HTTPException(400, "密碼長度需 6-100 字元")
+    if not (6 <= len(password) <= 72):
+        raise HTTPException(400, "密碼長度需 6-72 字元")
 
     if db.query(User).filter(User.username == username).first():
         raise HTTPException(400, "此帳號已存在")
@@ -291,8 +305,11 @@ async def login(
     db: Session = Depends(get_db),
 ):
     user = db.query(User).filter(User.username == body.username).first()
-    # Constant-time comparison to prevent timing attacks
-    if not user or not verify_password(body.password, user.hashed_password):
+    # Always call verify_password to prevent timing-based account enumeration.
+    # If user doesn't exist, verify against a dummy hash (constant time).
+    _DUMMY = "$2b$12$invalidhashfortimingatk.AAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    hashed = user.hashed_password if user else _DUMMY
+    if not verify_password(body.password, hashed) or not user:
         raise HTTPException(401, "帳號或密碼錯誤")
 
     token = create_token(user.id)
