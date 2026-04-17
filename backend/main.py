@@ -1,4 +1,4 @@
-import os, uuid, secrets, logging
+import os, uuid, secrets, logging, mimetypes
 from datetime import datetime, timedelta
 from io import BytesIO
 from pathlib import Path
@@ -12,6 +12,7 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.staticfiles import StaticFiles
 from jose import JWTError, jwt
 import bcrypt as _bcrypt
 from PIL import Image
@@ -46,6 +47,9 @@ TOKEN_EXPIRE_HOURS = 2
 UPLOAD_DIR = Path(__file__).parent / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+DIST_DIR = Path(__file__).parent.parent / "dist"
+
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 
 # ── Logging ───────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -213,7 +217,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 app.add_middleware(SecurityMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["Content-Type"],
@@ -416,3 +420,22 @@ async def delete_message(
     db.delete(msg)
     db.commit()
     return {"message": "已刪除"}
+
+
+# ── Serve React build (production) ────────────────────────────────────
+# Must be LAST — catches all non-API routes for SPA routing
+if DIST_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=DIST_DIR / "assets"), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # Serve existing static files directly
+        candidate = DIST_DIR / full_path
+        if candidate.exists() and candidate.is_file():
+            mime, _ = mimetypes.guess_type(str(candidate))
+            return FileResponse(candidate, media_type=mime or "application/octet-stream")
+        # Fallback: return index.html for SPA routing
+        index = DIST_DIR / "index.html"
+        if index.exists():
+            return FileResponse(index, media_type="text/html")
+        raise HTTPException(404)
