@@ -464,6 +464,8 @@ async def admin_list_users(
     key: str = "",
     db: Session = Depends(get_db),
 ):
+    if request.client and request.client.host not in ("127.0.0.1", "::1"):
+        raise HTTPException(404)
     if not ADMIN_KEY or key != ADMIN_KEY:
         raise HTTPException(403, "禁止存取")
     users = db.query(User).order_by(User.created_at).all()
