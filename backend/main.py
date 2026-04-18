@@ -177,7 +177,13 @@ def validate_and_save_image(content: bytes, original_filename: str) -> str:
 
 
 # ── Rate limiter ──────────────────────────────────────────────────────
-limiter = Limiter(key_func=get_remote_address)
+# Trust X-Real-IP only from localhost (nginx), not arbitrary clients.
+def _get_real_ip(request: Request) -> str:
+    if request.client and request.client.host in ("127.0.0.1", "::1"):
+        return request.headers.get("X-Real-IP", request.client.host)
+    return request.client.host or "127.0.0.1"
+
+limiter = Limiter(key_func=_get_real_ip)
 
 # ── App ───────────────────────────────────────────────────────────────
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
@@ -185,7 +191,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
-# Security headers + suspicious request logging
+# Security headers + suspicious request logging (detection only, not blocking)
 class SecurityMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         body = await request.body()
@@ -203,12 +209,14 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline'; "
+            "script-src 'self'; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src https://fonts.gstatic.com; "
             "img-src 'self' data: blob:; "
             "frame-ancestors 'none'"
         )
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         if "server" in response.headers:
             del response.headers["server"]
         return response
@@ -283,7 +291,7 @@ async def register(
         raise HTTPException(400, "密碼長度需 6-72 字元")
 
     if db.query(User).filter(User.username == username).first():
-        raise HTTPException(400, "此帳號已存在")
+        raise HTTPException(400, "無法完成註冊，請檢查輸入")
 
     avatar_filename = None
     if avatar and avatar.filename:
@@ -323,21 +331,23 @@ async def login(
         value=token,
         httponly=True,
         samesite="strict",
+        secure=True,
         max_age=TOKEN_EXPIRE_HOURS * 3600,
-        # secure=True,  # 啟用 HTTPS 後請取消註解
     )
     return response
 
 
 @app.post("/api/logout")
-async def logout():
+@limiter.limit("20/minute")
+async def logout(request: Request):
     response = JSONResponse({"message": "已登出"})
     response.delete_cookie("session", samesite="strict")
     return response
 
 
 @app.get("/api/me")
-async def get_me(current_user: User = Depends(get_current_user)):
+@limiter.limit("60/minute")
+async def get_me(request: Request, current_user: User = Depends(get_current_user)):
     return _user_dict(current_user)
 
 
@@ -362,7 +372,8 @@ async def upload_avatar(
 
 
 @app.get("/api/messages")
-async def get_messages(db: Session = Depends(get_db)):
+@limiter.limit("60/minute")
+async def get_messages(request: Request, db: Session = Depends(get_db)):
     messages = (
         db.query(Message)
         .order_by(Message.created_at.desc())
