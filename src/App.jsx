@@ -607,7 +607,7 @@ function GuestbookTab({ lang, user, openModal }) {
                   <span className="text-xs text-[#c4bdb5]">
                     {new Date(msg.created_at).toLocaleString()}
                   </span>
-                  {user?.id === msg.user_id && (
+                  {msg.is_own && (
                     <button
                       onClick={() => deleteMessage(msg.id)}
                       className="text-xs text-[#c4bdb5] hover:text-[#9a3412] transition-colors

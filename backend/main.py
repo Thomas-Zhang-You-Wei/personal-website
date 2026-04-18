@@ -42,6 +42,9 @@ def _load_secret_key() -> str:
     return key
 
 SECRET_KEY = _load_secret_key()
+# Pre-computed once at startup; used as constant-time dummy in login to prevent timing-based
+# account enumeration. Must be a valid bcrypt hash so checkpw runs the full cost factor.
+_DUMMY_HASH = _bcrypt.hashpw(b"__dummy_placeholder__", _bcrypt.gensalt()).decode()
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_HOURS = 2
 UPLOAD_DIR = Path(__file__).parent / "uploads"
@@ -122,6 +125,20 @@ def verify_password(plain: str, hashed: str) -> bool:
 def create_token(user_id: int) -> str:
     exp = datetime.utcnow() + timedelta(hours=TOKEN_EXPIRE_HOURS)
     return jwt.encode({"sub": str(user_id), "exp": exp}, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def get_optional_user(
+    session: str = Cookie(None),
+    db: Session = Depends(get_db),
+):
+    if not session:
+        return None
+    try:
+        payload = jwt.decode(session, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = int(payload["sub"])
+        return db.query(User).filter(User.id == user_id).first()
+    except Exception:
+        return None
 
 
 def get_current_user(
@@ -318,9 +335,8 @@ async def login(
 ):
     user = db.query(User).filter(User.username == body.username).first()
     # Always call verify_password to prevent timing-based account enumeration.
-    # If user doesn't exist, verify against a dummy hash (constant time).
-    _DUMMY = "$2b$12$invalidhashfortimingatk.AAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    hashed = user.hashed_password if user else _DUMMY
+    # If user doesn't exist, verify against a pre-computed dummy hash (constant time).
+    hashed = user.hashed_password if user else _DUMMY_HASH
     if not verify_password(body.password, hashed) or not user:
         raise HTTPException(401, "帳號或密碼錯誤")
 
@@ -373,7 +389,11 @@ async def upload_avatar(
 
 @app.get("/api/messages")
 @limiter.limit("60/minute")
-async def get_messages(request: Request, db: Session = Depends(get_db)):
+async def get_messages(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_optional_user),
+):
     messages = (
         db.query(Message)
         .order_by(Message.created_at.desc())
@@ -385,7 +405,7 @@ async def get_messages(request: Request, db: Session = Depends(get_db)):
             "id": m.id,
             "content": m.content,
             "created_at": m.created_at.isoformat(),
-            "user_id": m.user_id,
+            "is_own": current_user is not None and m.user_id == current_user.id,
             "author": _user_dict(m.author),
         }
         for m in messages
@@ -412,13 +432,15 @@ async def post_message(
         "id": msg.id,
         "content": msg.content,
         "created_at": msg.created_at.isoformat(),
-        "user_id": msg.user_id,
+        "is_own": True,
         "author": _user_dict(current_user),
     }
 
 
 @app.delete("/api/messages/{message_id}")
+@limiter.limit("30/minute")
 async def delete_message(
+    request: Request,
     message_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -440,11 +462,14 @@ if DIST_DIR.exists():
 
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
-        # Serve existing static files directly
         candidate = DIST_DIR / full_path
-        if candidate.exists() and candidate.is_file():
-            mime, _ = mimetypes.guess_type(str(candidate))
-            return FileResponse(candidate, media_type=mime or "application/octet-stream")
+        resolved = candidate.resolve()
+        # Block path traversal (e.g. /../backend/.secret_key)
+        if not str(resolved).startswith(str(DIST_DIR.resolve())):
+            raise HTTPException(404)
+        if resolved.exists() and resolved.is_file():
+            mime, _ = mimetypes.guess_type(str(resolved))
+            return FileResponse(resolved, media_type=mime or "application/octet-stream")
         # Fallback: return index.html for SPA routing
         index = DIST_DIR / "index.html"
         if index.exists():

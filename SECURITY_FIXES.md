@@ -1,6 +1,44 @@
-# Security Fixes — 2026-04-18
+# Security Fixes
 
-Based on penetration test reports: `SECURITY_AUDIT_claude.md`, `ATTACK_LOG_copilot_detailed.md`
+---
+
+## Round 2 — 2026-04-18 (based on `security_audits_claude/SECURITY_AUDIT_round2_claude.md`)
+
+### Fix R2-1 — SPA Route Path Traversal (CRITICAL)
+
+**File:** `backend/main.py` — `serve_spa`  
+**Issue:** `serve_spa` directly joined user-supplied `full_path` to `DIST_DIR` without boundary validation. An attacker could request `/%2e%2e/backend/.secret_key` to read the JWT signing key, then forge tokens for any user. Also exposed `app.db` (all password hashes) and `main.py`.  
+**Fix:** Added `resolved = candidate.resolve()` + boundary check mirroring the existing `/uploads/` protection: reject if `resolved` does not start with `DIST_DIR.resolve()`.
+
+---
+
+### Fix R2-2 — Dummy Hash Invalid Format (MEDIUM)
+
+**File:** `backend/main.py` — module level + `login`  
+**Issue:** The inline dummy hash `"$2b$12$invalidhashfortimingatk.AAAA..."` had 52 chars after `$2b$12$` instead of the required 53, causing `bcrypt.checkpw` to raise `Invalid salt` immediately (0 ms). This restored the ~167 ms timing difference between "user exists" and "user not found", enabling account enumeration via timing.  
+**Fix:** Moved dummy hash to module-level constant `_DUMMY_HASH`, pre-computed at startup with `bcrypt.hashpw(b"__dummy_placeholder__", bcrypt.gensalt())`. This guarantees a syntactically valid hash with the same cost factor as real passwords, so `checkpw` always runs the full computation.
+
+---
+
+### Fix R2-3 — `DELETE /api/messages` Missing Rate Limit (MEDIUM)
+
+**File:** `backend/main.py` — `delete_message`  
+**Issue:** No rate limit on `DELETE /api/messages/{id}`, allowing an attacker to sequentially delete all messages (IDs 1, 2, 3 …) within seconds.  
+**Fix:** Added `@limiter.limit("30/minute")` and `request: Request` parameter.
+
+---
+
+### Fix R2-4 — `user_id` Exposed in API Response (INFO)
+
+**Files:** `backend/main.py`, `src/App.jsx`  
+**Issue:** `GET /api/messages` and `POST /api/messages` returned raw integer `user_id`, an internal DB identifier that has no business being public.  
+**Fix:**
+- Backend: Added `get_optional_user` dependency (reads cookie without raising on failure). `get_messages` now accepts optional auth and returns `is_own: bool` instead of `user_id`.
+- Frontend `App.jsx:610`: Changed `user?.id === msg.user_id` → `msg.is_own`.
+
+---
+
+## Round 1 — 2026-04-18 (based on `SECURITY_AUDIT_claude.md`, `ATTACK_LOG_copilot_detailed.md`)
 
 ---
 
@@ -77,6 +115,6 @@ Based on penetration test reports: `SECURITY_AUDIT_claude.md`, `ATTACK_LOG_copil
 |-------|--------|
 | CSP `style-src 'unsafe-inline'` | React and Google Fonts require inline styles; removing it would break the UI |
 | JWT payload base64-decodable | Normal behavior for HS256 JWT; payload is signed, not encrypted — no sensitive data in payload |
-| Timing leak on login | Already mitigated with dummy hash constant-time check; remaining gap is negligible |
-| `user_id` in message API response | Required by frontend to show/hide the delete button; low risk since usernames are already public |
+| Timing leak on login | Fixed in Round 2 with a valid pre-computed dummy hash |
+| `user_id` in message API response | Fixed in Round 2 with `is_own` boolean |
 | Account lockout mechanism | Requires Redis or DB-tracked failure counts; deferred to future iteration |
