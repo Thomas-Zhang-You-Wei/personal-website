@@ -42,6 +42,7 @@ def _load_secret_key() -> str:
     return key
 
 SECRET_KEY = _load_secret_key()
+ADMIN_KEY = os.getenv("ADMIN_KEY", "")
 # Pre-computed once at startup; used as constant-time dummy in login to prevent timing-based
 # account enumeration. Must be a valid bcrypt hash so checkpw runs the full cost factor.
 _DUMMY_HASH = _bcrypt.hashpw(b"__dummy_placeholder__", _bcrypt.gensalt()).decode()
@@ -453,6 +454,43 @@ async def delete_message(
     db.delete(msg)
     db.commit()
     return {"message": "已刪除"}
+
+
+# ── Admin ─────────────────────────────────────────────────────────────
+@app.get("/api/admin/users")
+@limiter.limit("10/minute")
+async def admin_list_users(
+    request: Request,
+    key: str = "",
+    db: Session = Depends(get_db),
+):
+    if not ADMIN_KEY or key != ADMIN_KEY:
+        raise HTTPException(403, "禁止存取")
+    users = db.query(User).order_by(User.created_at).all()
+    messages = db.query(Message).order_by(Message.created_at.desc()).all()
+    return {
+        "users": [
+            {
+                "id": u.id,
+                "username": u.username,
+                "avatar": u.avatar_filename,
+                "created_at": u.created_at.isoformat() if u.created_at else None,
+                "message_count": len(u.messages),
+            }
+            for u in users
+        ],
+        "messages": [
+            {
+                "id": m.id,
+                "author": m.author.username,
+                "content": m.content,
+                "created_at": m.created_at.isoformat(),
+            }
+            for m in messages
+        ],
+        "total_users": len(users),
+        "total_messages": len(messages),
+    }
 
 
 # ── Serve React build (production) ────────────────────────────────────
