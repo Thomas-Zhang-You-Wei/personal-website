@@ -57,3 +57,9 @@ id_ed25519
 
 # ── Claude Code 內部目錄 ──────────────────────────────────────────────
 .claude/
+
+# ── 本地分析報告（不需要進 repo）─────────────────────────────────────
+ATTACK_LOG*.md
+TEST_SUMMARY*.md
+SECURITY_AUDIT*.md
+SECURITY_CHECKLIST*.md
